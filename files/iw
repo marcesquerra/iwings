@@ -1,0 +1,102 @@
+#!/bin/bash
+
+
+function setop () {
+    echo "$*" > target/iwingcmd
+}
+
+function runCommand() {
+    nix-shell --run "bash -c '. target/iwingcmd'"
+}
+
+function run() {
+
+
+    function noop () {
+        CMD=""
+    }
+
+    key="$1"
+
+    CMD=runCommand
+
+    rm -f target/iwingcmd
+
+    case $key in
+        man)
+            setop "\$idris/bin/idris --help | less"
+        ;;
+        console)
+            run genModuleStep && \
+            run replStep
+            noop
+        ;;
+        compile)
+            run genModuleStep && \
+            run compileStep
+            noop
+        ;;
+        run)
+            run genModuleStep && \
+            run compileStep && \
+            run runStep
+            noop
+        ;;
+        protectIdris)
+            setop "echo \"\$idris\""
+            CMD="ln -s $(runCommand) /nix/var/nix/gcroots/per-user/$USER/"
+        ;;
+        genModule)
+            run genModuleStep
+            noop
+        ;;
+        name)
+            run genModuleStep && \
+            run nameStep
+            noop
+        ;;
+        idris)
+            setop "\$idris/bin/idris ${@:2}"
+        ;;
+        edit)
+            run genModuleStep
+            idrisPath=`run idrisPathStep`
+            PATH=$PATH:$idrisPath/bin
+            bash -i -c "$idrisPath/bin/idris &" &> /dev/null
+            IDRIS_PROCESS=`pidof idris`
+            echo "$IDRIS_PROCESS"
+            $EDITOR
+            kill $IDRIS_PROCESS
+            noop
+        ;;
+
+
+        replStep)
+            name=`run nameStep`
+            setop "\$idris/bin/idris --repl target/$name.ipkg"
+        ;;
+        compileStep)
+            name=`run nameStep`
+            setop "\$idris/bin/idris --build target/$name.ipkg"
+        ;;
+        runStep)
+            name=`run nameStep`
+            ./$name
+            noop
+        ;;
+        genModuleStep)
+            mkdir -p target
+            setop "\$moduleBuilder/bin/genModule.sh"
+        ;;
+        idrisPathStep)
+            setop "echo \$idris"
+        ;;
+        nameStep)
+            CMD="cat target/moduleName"
+        ;;
+    esac
+
+    $CMD
+}
+
+run "$@"
