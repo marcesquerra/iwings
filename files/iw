@@ -1,12 +1,14 @@
 #!/bin/bash
 
-
-function setop () {
+function quoteParameters () {
   if [ ! $# -eq 0 ]
     then
-      printf '"%s" ' "$@" >> target/iwingcmd
-      echo "" >> target/iwingcmd
+      printf '"%s" ' "$@"
   fi
+}
+
+function setop () {
+  echo "$*" > target/iwingcmd
 }
 
 function runCommand() {
@@ -27,7 +29,7 @@ function run() {
 
     case $key in
         man)
-            setop "\$idris/bin/idris" "--help" "|" "less"
+            setop "\$idris/bin/idris --help | less"
         ;;
         console)
             run genModuleStep && \
@@ -46,7 +48,7 @@ function run() {
             noop
         ;;
         protectIdris)
-            setop "echo" "\$idris"
+            setop "echo \$idris"
             CMD="ln -s $(runCommand) /nix/var/nix/gcroots/per-user/$USER/"
         ;;
         genModule)
@@ -59,7 +61,7 @@ function run() {
             noop
         ;;
         idris)
-            setop "\$idris/bin/idris" "${@:2}"
+            setop "\$idris/bin/idris" `quoteParameters "${@:2}"`
         ;;
         edit)
             run genModuleStep
@@ -76,11 +78,11 @@ function run() {
 
         replStep)
             name=`run nameStep`
-            setop "\$idris/bin/idris" "--repl" "target/$name.ipkg"
+            setop "\$idris/bin/idris --repl target/$name.ipkg"
         ;;
         compileStep)
             name=`run nameStep`
-            setop "\$idris/bin/idris" "--build" "target/$name.ipkg"
+            setop "\$idris/bin/idris --build target/$name.ipkg"
         ;;
         runStep)
             name=`run nameStep`
@@ -92,7 +94,7 @@ function run() {
             setop "\$moduleBuilder/bin/genModule.sh"
         ;;
         idrisPathStep)
-            setop "echo" "\$idris"
+            setop "echo \$idris"
         ;;
         nameStep)
             CMD="cat target/moduleName"
