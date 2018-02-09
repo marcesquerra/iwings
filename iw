@@ -1,4 +1,10 @@
 #!/bin/bash
 
-nix-shell --run "\$moduleBuilder/bin/iw \"$@\""
+printf "%s" "\$moduleBuilder/bin/iw " > target/iwinvoker
 
+if [ ! $# -eq 0 ]
+  then
+    printf '"%s" ' "$@" >> target/iwinvoker
+fi
+
+nix-shell --run "bash -c '. target/iwinvoker'"
